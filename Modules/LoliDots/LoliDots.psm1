@@ -35,6 +35,9 @@ function Get-VideoSize {
         }
       }
     }
+    if (-not $?) {
+      Throw "ffprobe failed: $LastExitCode"
+    }
     New-Object -Property $Size -TypeName psobject
   }
 }
@@ -74,6 +77,9 @@ function Convert-PxUpscale {
       "crop=${CropWidth}:${CropHeight}:${cropX}:${cropY}"
     )
     ffmpeg -i $Path -vf $($filterChain -join ",") $OutFile
+    if (-not $?) {
+      Throw "ffmpeg failed: $LastExitCode"
+    }
     Get-VideoSize $OutFile
   }
 }
