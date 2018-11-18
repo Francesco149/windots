@@ -68,6 +68,30 @@ if ($newSize.Width -ne 1920 -Or $newSize.Height -ne 1080) {
 }
 ```
 
+# ffgif
+downscale a video and convert it to gif
+
+```ps1
+ffgif myvideo.mp4
+
+$result = Convert-ToGif `
+  -Path myvideo.mp4 `
+  -OutFile foobar.gif `
+  -PaletteFile foobar.png `
+  -MaxWidth 400
+
+Write-Output "converted to $result.
+```
+
+by default the conversion is done with a palette (higher quality but
+larger filesize). specify "none" as PaletteFile to disable it.
+by default, PaletteFile is the original file path with a .png extension
+
+the default MaxWidth is 800, if the video is smaller than MaxWidth it
+won't be scaled
+
+the default OutFile is the original file path with a .gif extension
+
 # lint
 alias of [Invoke-ScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer#usage)
 

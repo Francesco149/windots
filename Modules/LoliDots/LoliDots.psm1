@@ -78,10 +78,65 @@ function Convert-PxUpscale {
   }
 }
 
+function Convert-ToGif {
+  [CmdletBinding()]
+  [OutputType([psobject])]
+  param(
+    [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+    [string]$Path,
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string]$OutFile="$($(Get-Item $Path).Basename).gif",
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string]$PaletteFile="$($(Get-Item $Path).Basename).png",
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [uint16]$MaxWidth=800
+  )
+  process {
+    $Result = @{
+      Source = $Path
+      Palette = $PaletteFile
+      Result = $OutFile
+    }
+
+    $size = Get-VideoSize $Path
+    if ($MaxWidth -gt $size.Width) {
+      $MaxWidth = $size.Width
+    }
+
+    if ($PaletteFile -ne "none") {
+      $PaletteFile = "$($(Get-Item $Path).Basename).png"
+      $filterChain = @(
+        "scale=${MaxWidth}:-1:flags=lanczos"
+        "palettegen"
+      )
+      ffmpeg -i $Path -vf $($filterChain -join ",") $PaletteFile
+      if (-not $?) {
+        Throw "hq palette generation failed: $LastExitCode"
+      }
+      $filterChain = @(
+        "scale=${MaxWidth}:-1:flags=lanczos[x]"
+        "[x][1:v]paletteuse=dither=none"
+      )
+      ffmpeg -i $Path -i $PaletteFile `
+        -filter_complex $($filterChain -join ";") $OutFile
+      if (-not $?) {
+        Throw "hq conversion failed: $LastExitCode"
+      }
+    } else {
+      ffmpeg -i $Path -vf scale=${MaxWidth}:-1:flags=lanczos $OutFile
+      if (-not $?) {
+        Throw "conversion failed: $LastExitCode"
+      }
+    }
+    New-Object -Property $Result -TypeName psobject
+  }
+}
+
 Set-Alias -Name dots -Value Open-DotsModule
 Set-Alias -Name profile -Value Open-Profile
 Set-Alias -Name ffsize -Value Get-VideoSize
 Set-Alias -Name ffpxupscale -Value Convert-PxUpscale
+Set-Alias -Name ffgif -Value Convert-ToGif
 Set-Alias -Name lint -Value Invoke-ScriptAnalyzer
 Set-Alias -Name lintdots -Value Test-DotsModule
 
