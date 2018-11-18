@@ -56,12 +56,16 @@ ffpxupscale \path\to\input\video 4 output.mp4
 
 ffpxupscale \path\to\input\video 4 output.mp4 1920 1080
 
-Convert-PxUpscale `
+$newSize = Convert-PxUpscale `
   -Path \path\to\input\video `
   -ScaleMultiplier 4 `
   -OutFile output.mp4 `
   -CropWidth 1920 `
   -CropHeight 1080
+
+if ($newSize.Width -ne 1920 -Or $newSize.Height -ne 1080) {
+  Throw "oh no!"
+}
 ```
 
 # lint

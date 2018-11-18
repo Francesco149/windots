@@ -40,6 +40,8 @@ function Get-VideoSize {
 }
 
 function Convert-PxUpscale {
+  [CmdletBinding()]
+  [OutputType([psobject])]
   param(
     [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
     [string]$Path,
@@ -52,22 +54,28 @@ function Convert-PxUpscale {
     [Parameter(ValueFromPipelineByPropertyName=$true)]
     [uint16]$CropHeight
   )
-  $size = Get-VideoSize $Path
-  $size.Width = [uint16]($size.Width * $ScaleMultiplier)
-  $size.Height = [uint16]($size.Height * $ScaleMultiplier)
-  if ($CropWidth -eq 0 -Or $CropWidth -gt $size.Width) {
-    $CropWidth = $size.Width
+  process {
+    $size = Get-VideoSize $Path
+    $size.Width = [uint16]($size.Width * $ScaleMultiplier)
+    $size.Height = [uint16]($size.Height * $ScaleMultiplier)
+    Write-Verbose "resizing to $size"
+    if ($CropWidth -eq 0 -Or $CropWidth -gt $size.Width) {
+      $CropWidth = $size.Width
+    }
+    if ($CropHeight -eq 0 -Or $CropHeight -gt $size.Height) {
+      $CropHeight = $size.Height
+    }
+    $cropX = [uint16](($size.Width - $CropWidth) / 2)
+    $cropY = [uint16](($size.Height - $CropHeight) / 2)
+    Write-Verbose `
+      "cropping to (${cropX}, ${cropY}) ${CropWidth}x${CropHeight}"
+    $filterChain = @(
+      "scale=$($size.Width):$($size.Height):flags=neighbor"
+      "crop=${CropWidth}:${CropHeight}:${cropX}:${cropY}"
+    )
+    ffmpeg -i $Path -vf $($filterChain -join ",") $OutFile
+    Get-VideoSize $OutFile
   }
-  if ($CropHeight -eq 0 -Or $CropHeight -gt $size.Height) {
-    $CropHeight = $size.Height
-  }
-  $cropX = [uint16](($size.Width - $CropWidth) / 2)
-  $cropY = [uint16](($size.Height - $CropHeight) / 2)
-  $filterChain = @(
-    "scale=$($size.Width):$($size.Height):flags=neighbor"
-    "crop=${CropWidth}:${CropHeight}:${cropX}:${cropY}"
-  )
-  ffmpeg -i $Path -vf $($filterChain -join ",") $OutFile
 }
 
 Set-Alias -Name dots -Value Open-DotsModule
